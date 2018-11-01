@@ -1,6 +1,6 @@
 missing module named fcntl - imported by tempfile, subprocess, tqdm._utils
 missing module named readline - imported by cmd, pdb
-missing module named pwd - imported by posixpath, getpass, shutil, tarfile, webbrowser, distutils.util, distutils.archive_util, netrc
+missing module named pwd - imported by posixpath, shutil, tarfile, getpass, distutils.util, webbrowser, distutils.archive_util, netrc
 missing module named org - imported by copy
 missing module named 'org.python' - imported by pickle, setuptools.sandbox, xml.sax
 missing module named _sysconfigdata - imported by distutils.sysconfig, sysconfig
@@ -27,7 +27,7 @@ missing module named 'com.sun' - imported by pkg_resources._vendor.appdirs
 missing module named com - imported by pkg_resources._vendor.appdirs
 missing module named pkg_resources.extern.packaging - imported by pkg_resources.extern, pkg_resources, setuptools.dist, setuptools.command.egg_info
 missing module named pkg_resources.extern.appdirs - imported by pkg_resources.extern, pkg_resources
-missing module named 'importlib.machinery' - imported by numpy.compat.py3k, pkg_resources
+missing module named 'importlib.machinery' - imported by pkg_resources, numpy.compat.py3k
 missing module named 'pkg_resources.extern.six.moves' - imported by pkg_resources, pkg_resources._vendor.packaging.requirements
 missing module named pkg_resources.extern.six - imported by pkg_resources.extern, pkg_resources
 missing module named _imp - imported by pkg_resources
@@ -88,7 +88,7 @@ missing module named 'test.support' - imported by future.moves.test.support
 missing module named _datetime - imported by future.backports.datetime
 missing module named reprlib.recursive_repr - imported by reprlib, future.backports.misc
 missing module named numpy.lib.i0 - imported by numpy.lib, numpy.dual
-missing module named pathlib - imported by numpy.compat.py3k, PIL.Image, imageio.core.request
+missing module named pathlib - imported by numpy.compat.py3k, imageio.core.request, PIL.Image
 missing module named numpy.core.integer - imported by numpy.core, numpy.fft.helper
 missing module named numpy.core.conjugate - imported by numpy.core, numpy.fft.fftpack
 missing module named numpy.core.sqrt - imported by numpy.core, numpy.linalg.linalg, numpy.fft.fftpack
@@ -138,9 +138,10 @@ missing module named czifile - imported by imageio.plugins._tifffile
 missing module named ElementC14N - imported by xml.etree.ElementTree
 missing module named 'backports.lzma' - imported by imageio.plugins._tifffile
 missing module named 'IPython.display' - imported by tqdm._tqdm_notebook, moviepy.video.io.html_tools
+missing module named 'scipy.misc' - imported by moviepy.video.fx.resize
+missing module named cv2 - imported by moviepy.video.fx.headblur, moviepy.video.fx.resize
 missing module named 'scipy.ndimage' - imported by moviepy.video.fx.painting
 missing module named skimage - imported by moviepy.video.fx.painting
-missing module named cv2 - imported by moviepy.video.fx.resize, moviepy.video.fx.headblur
 missing module named 'IPython.html' - imported by tqdm._tqdm_notebook
 missing module named IPython - imported by tqdm._tqdm_notebook
 missing module named ipywidgets - imported by tqdm._tqdm_notebook
@@ -157,7 +158,6 @@ missing module named 'cryptography.x509' - imported by urllib3.contrib.pyopenssl
 missing module named 'cryptography.hazmat' - imported by urllib3.contrib.pyopenssl
 missing module named cryptography - imported by urllib3.contrib.pyopenssl
 missing module named OpenSSL - imported by urllib3.contrib.pyopenssl
-missing module named 'scipy.misc' - imported by moviepy.video.fx.resize
 missing module named riscosenviron - imported by os
 missing module named riscospath - imported by os
 missing module named riscos - imported by os

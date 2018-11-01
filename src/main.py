@@ -2,11 +2,22 @@ import os
 import sys
 import getopt
 
-from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips
+from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips, CompositeVideoClip
+
+codecs = {
+   'libx264': 'mp4',
+   'mpeg4': 'mp4',
+   'rawvideo': 'avi',
+   'png': 'avi',
+   'libvorbis': '.ogv',
+   'libvpx': '.webm',
+}
 
 def print_help():
    print('available arguments:')
    print('\t-h # show this help')
+   print('\t-c <codec> # select output codec (libx264, mpeg4, rawvideo, png, libvorbis, libvpx)')
+   print('\t-l <video-length> # set fixed video length in seconds')
    print('\t-f <folder> # folder with video files to be edited')
    print('\t-o <output-folder> # output folder to store results')
    print('\t-v <video> # video to be added at the begining')
@@ -14,6 +25,7 @@ def print_help():
    print('\t-t <image-time> # time for image to be displayed if image is set (default N=3)')
    print('\t-s <cut-start> # cut N seconds from begining of all video files (default N=0)')
    print('\t-e <cut-end> # cut N seconds from end of all video files (default N=0)')
+   print('\t-w <watermark-image> # add watermark image into main video')
    print('aliases:')
    print('\t--help # show this help')
    print('\t--folder=<folder> # folder with video files to be edited')
@@ -25,6 +37,9 @@ def print_help():
    print('\t--image-time=<image-time> # time for image to be displayed if image is set (default N=3)')
    print('\t--cut-start=<cut-start> # cut N seconds from begining of all video files (default N=0)')
    print('\t--cut-end=<cut-end> # cut N seconds from end of all video files (default N=0)')
+   print('\t--watermark=<watermark-image> # add watermark image into main video')
+   print('\t--black-top=<height> # add black rectangle from top of video of length N (default N=0)')
+   print('\t--black-bottom=<height> # add black rectangle from bottom of video of length N (default N=0)')
 
 def print_licence():
    print('''
@@ -63,14 +78,21 @@ def main(argv):
    imageTime = 3
    cutFromBegining = 0
    cutFromEnd = 0
+   codec = None
+   fixedLength = None
+   watermarkImage = None
+   blackTop = 0
+   blackBottom = 0
 
    print_short_licence()
 
    try:
       opts, args = getopt.getopt(
          argv,
-         "hf:v:i:t:s:e:o:",
-         ["help", "folder=", "output=", "video=", "video-end=", "image=", "image-end=", "image-time=", "cut-start=", "cut-end=", "licence"]
+         "hf:v:i:t:s:e:o:c:l:w:",
+         ["help", "folder=", "output=", "video=", "video-end=", "image=",
+          "image-end=", "image-time=", "cut-start=", "cut-end=", "licence",
+          "watermark=", "black-top=", "black-bottom="]
       )
    except getopt.GetoptError:
       print_help()
@@ -102,12 +124,23 @@ def main(argv):
          imageEndFile = arg
       elif opt in ("--video-end"):
          videoEndFile = arg
+      elif opt in ("-c"):
+         codec = arg
+      elif opt in ("-l"):
+         fixedLength = int(arg)
+      elif opt in ("-w", "--watermark"):
+         watermarkImage = arg
+      elif opt in ("--black-top"):
+         blackTop = int(arg)
+      elif opt in ("--black-bottom"):
+         blackBottom = int(arg)
 
    fileList = []
    ffvideoFile = None
    ffvideoEndFile = None
    ffimageFile = None
    ffimageEndFile = None
+   ffwatermark = None
 
    if not outputFolder:
       print('Output folder is not found, use -h or --help to show help message.')
@@ -116,12 +149,20 @@ def main(argv):
    if not os.path.isdir(outputFolder):
       os.makedirs(outputFolder)
 
-   if (videoFile and not os.path.isfile(videoFile)) or (videoEndFile and not os.path.isfile(videoEndFile:
+   if (videoFile and not os.path.isfile(videoFile)) or (videoEndFile and not os.path.isfile(videoEndFile)):
       print('Input video file does not exists, use -h or --help to show help message.')
       sys.exit(2)
 
    if (imageFile and not os.path.isfile(imageFile)) or (imageEndFile and not os.path.isfile(imageEndFile)):
       print('Input image file does not exists, use -h or --help to show help message.')
+      sys.exit(2)
+
+   if (watermarkImage and not os.path.isfile(watermarkImage)):
+      print('Input watermark image does not exists, use -h or --help to show help message.')
+      sys.exit(2)
+
+   if codec is not None and not codes.has_key(codec):
+      print('Unknown codec, use -h or --help to show help message.')
       sys.exit(2)
 
    if (videoFile):
@@ -134,7 +175,10 @@ def main(argv):
       ffimageFile = ImageClip(imageFile, duration=imageTime)
 
    if (imageEndFile):
-      ffimageEndFile = ImageClip(imageFile, duration=imageFile)
+      ffimageEndFile = ImageClip(imageEndFile, duration=imageFile)
+
+   if (watermarkImage):
+      ffwatermark = ImageClip(watermarkImage)
 
    try:
       fileList = os.listdir(inputFolder)
@@ -146,7 +190,32 @@ def main(argv):
       try:
          if (os.path.isfile(os.path.join(inputFolder, filename))):
             video = VideoFileClip(os.path.join(inputFolder, filename))
-            video = video.subclip(cutFromBegining, -cutFromEnd)
+            video = video.subclip(cutFromBegining, -cutFromEnd if cutFromEnd > 0 else None)
+            width, height = video.size
+
+            if (fixedLength is not None):
+               video = video.subclip(0, fixedLength)
+
+            if (blackTop > 0):
+               def top_filter(frame):
+                  frame[0: blackTop, 0: width] = 0
+                  return frame
+
+               video = video.fl_image(top_filter)
+
+            if (blackBottom > 0):
+               def bottom_filter(frame):
+                  frame[(height - blackBottom): height, 0: width] = 0
+                  return frame
+
+               video = video.fl_image(bottom_filter)
+
+            if (ffwatermark is not None):
+               logo = (ffwatermark
+                        .set_duration(video.duration)
+                        .margin(right=8, top=8, opacity=0.6)
+                        .set_pos(("right", "top")))
+               video = CompositeVideoClip([video, logo])
 
             videos = []
             if (ffvideoFile):
@@ -164,7 +233,9 @@ def main(argv):
                videos.append(ffimageEndFile.resize(video.size))
 
             result = concatenate_videoclips(videos)
-            result.write_videofile(os.path.join(outputFolder, filename))
+
+            translated_filename = filename if codec is None else os.path.splitext(filename)[0] + "." + codecs[codec]
+            result.write_videofile(os.path.join(outputFolder, translated_filename), codec=codec)
       except:
          print('Error while transfering file: ', filename)
 
