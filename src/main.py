@@ -175,7 +175,7 @@ def main(argv):
       ffimageFile = ImageClip(imageFile, duration=imageTime)
 
    if (imageEndFile):
-      ffimageEndFile = ImageClip(imageEndFile, duration=imageFile)
+      ffimageEndFile = ImageClip(imageEndFile, duration=imageTime)
 
    if (watermarkImage):
       ffwatermark = ImageClip(watermarkImage)
