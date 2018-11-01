@@ -2,17 +2,6 @@ import os
 import sys
 import getopt
 
-from moviepy.video.fx.accel_decel import accel_decel
-from moviepy.video.fx.blackwhite import blackwhite
-from moviepy.video.fx.blink import blink
-from moviepy.video.fx.crop import crop
-from moviepy.video.fx.even_size import even_size
-from moviepy.video.fx.fadein import fadein
-from moviepy.video.fx.fadeout import fadeout
-from moviepy.video.fx.mirror_x import mirror_x
-from moviepy.video.fx.mirror_y import mirror_y
-from moviepy.video.fx.resize import resize
-from moviepy.audio.fx.audio_fadein import audio_fadein
 from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips
 
 def print_help():
@@ -22,18 +11,20 @@ def print_help():
    print('\t-o <output-folder> # output folder to store results')
    print('\t-v <video> # video to be added at the begining')
    print('\t-i <image> # image to be added at the begining')
-   print('\t-t <image-time> # time for image to be displayed if image is set')
-   print('\t-s <cut-start> # cut N seconds from begining of all video files (default N=3)')
-   print('\t-e <cut-end> # cut N seconds from end of all video files (default N=3)')
+   print('\t-t <image-time> # time for image to be displayed if image is set (default N=3)')
+   print('\t-s <cut-start> # cut N seconds from begining of all video files (default N=0)')
+   print('\t-e <cut-end> # cut N seconds from end of all video files (default N=0)')
    print('aliases:')
    print('\t--help # show this help')
    print('\t--folder=<folder> # folder with video files to be edited')
    print('\t--output=<output-folder> # output folder to store results')
    print('\t--video=<video> # video to be added at the begining')
+   print('\t--video-end=<video> # video to be added at the end')
    print('\t--image=<image> # image to be added at the begining')
-   print('\t--image-time=<image-time> # time for image to be displayed if image is set')
-   print('\t--cut-start=<cut-start> # cut N seconds from begining of all video files (default N=3)')
-   print('\t--cut-end=<cut-end> # cut N seconds from end of all video files (default N=3)')
+   print('\t--image-end=<image> # image to be added at the end')
+   print('\t--image-time=<image-time> # time for image to be displayed if image is set (default N=3)')
+   print('\t--cut-start=<cut-start> # cut N seconds from begining of all video files (default N=0)')
+   print('\t--cut-end=<cut-end> # cut N seconds from end of all video files (default N=0)')
 
 def print_licence():
    print('''
@@ -66,10 +57,12 @@ def main(argv):
    inputFolder = None
    outputFolder = None
    videoFile = None
+   videoEndFile = None
    imageFile = None
+   imageEndFile = None
    imageTime = 3
-   cutFromBegining = 3
-   cutFromEnd = 3
+   cutFromBegining = 0
+   cutFromEnd = 0
 
    print_short_licence()
 
@@ -77,7 +70,7 @@ def main(argv):
       opts, args = getopt.getopt(
          argv,
          "hf:v:i:t:s:e:o:",
-         ["help", "folder=", "output=", "video=", "image=", "image-time=", "cut-start=", "cut-end=", "licence"]
+         ["help", "folder=", "output=", "video=", "video-end=", "image=", "image-end=", "image-time=", "cut-start=", "cut-end=", "licence"]
       )
    except getopt.GetoptError:
       print_help()
@@ -105,10 +98,16 @@ def main(argv):
          imageTime = max(1, int(arg))
       elif opt in ("-i", "--image"):
          imageFile = arg
+      elif opt in ("--image-end"):
+         imageEndFile = arg
+      elif opt in ("--video-end"):
+         videoEndFile = arg
 
    fileList = []
    ffvideoFile = None
+   ffvideoEndFile = None
    ffimageFile = None
+   ffimageEndFile = None
 
    if not outputFolder:
       print('Output folder is not found, use -h or --help to show help message.')
@@ -117,19 +116,25 @@ def main(argv):
    if not os.path.isdir(outputFolder):
       os.makedirs(outputFolder)
 
-   if videoFile and not os.path.isfile(videoFile):
+   if (videoFile and not os.path.isfile(videoFile)) or (videoEndFile and not os.path.isfile(videoEndFile:
       print('Input video file does not exists, use -h or --help to show help message.')
       sys.exit(2)
 
-   if imageFile and not os.path.isfile(imageFile):
+   if (imageFile and not os.path.isfile(imageFile)) or (imageEndFile and not os.path.isfile(imageEndFile)):
       print('Input image file does not exists, use -h or --help to show help message.')
       sys.exit(2)
 
    if (videoFile):
       ffvideoFile = VideoFileClip(videoFile)
 
+   if (videoEndFile):
+      ffvideoEndFile = VideoFileClip(videoEndFile)
+
    if (imageFile):
       ffimageFile = ImageClip(imageFile, duration=imageTime)
+
+   if (imageEndFile):
+      ffimageEndFile = ImageClip(imageFile, duration=imageFile)
 
    try:
       fileList = os.listdir(inputFolder)
@@ -149,7 +154,14 @@ def main(argv):
 
             if (ffimageFile):
                videos.append(ffimageFile.resize(video.size))
+
             videos.append(video)
+
+            if (ffvideoEndFile):
+               videos.append(ffvideoEndFile.resize(video.size))
+
+            if (ffimageEndFile):
+               videos.append(ffimageEndFile.resize(video.size))
 
             result = concatenate_videoclips(videos)
             result.write_videofile(os.path.join(outputFolder, filename))
