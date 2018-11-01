@@ -4,15 +4,6 @@ import getopt
 
 from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips, CompositeVideoClip
 
-codecs = {
-   'libx264': 'mp4',
-   'mpeg4': 'mp4',
-   'rawvideo': 'avi',
-   'png': 'avi',
-   'libvorbis': '.ogv',
-   'libvpx': '.webm',
-}
-
 def print_help():
    print('available arguments:')
    print('\t-h # show this help')
@@ -69,6 +60,15 @@ def print_short_licence():
    ''')
 
 def main(argv):
+   codecs = {
+      'libx264': 'mp4',
+      'mpeg4': 'mp4',
+      'rawvideo': 'avi',
+      'png': 'avi',
+      'libvorbis': 'ogv',
+      'libvpx': 'webm',
+   }
+
    inputFolder = None
    outputFolder = None
    videoFile = None
@@ -161,7 +161,7 @@ def main(argv):
       print('Input watermark image does not exists, use -h or --help to show help message.')
       sys.exit(2)
 
-   if codec is not None and not codes.has_key(codec):
+   if codec is not None and not codecs.has_key(codec):
       print('Unknown codec, use -h or --help to show help message.')
       sys.exit(2)
 
