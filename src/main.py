@@ -16,8 +16,9 @@ def print_help():
    print('\t-t <image-time> # time for image to be displayed if image is set (default N=3)')
    print('\t-s <cut-start> # cut N seconds from begining of all video files (default N=0)')
    print('\t-e <cut-end> # cut N seconds from end of all video files (default N=0)')
+   print('\t-u # cut units are in percents instead of seconds')
    print('\t-w <watermark-image> # add watermark image into main video')
-   print('aliases:')
+   print('## word specified arguments:')
    print('\t--help # show this help')
    print('\t--folder=<folder> # folder with video files to be edited')
    print('\t--output=<output-folder> # output folder to store results')
@@ -28,9 +29,11 @@ def print_help():
    print('\t--image-time=<image-time> # time for image to be displayed if image is set (default N=3)')
    print('\t--cut-start=<cut-start> # cut N seconds from begining of all video files (default N=0)')
    print('\t--cut-end=<cut-end> # cut N seconds from end of all video files (default N=0)')
+   print('\t--cut-percent # cut units are in percents instead of seconds')
    print('\t--watermark=<watermark-image> # add watermark image into main video')
-   print('\t--black-top=<height> # add black rectangle from top of video of length N (default N=0)')
-   print('\t--black-bottom=<height> # add black rectangle from bottom of video of length N (default N=0)')
+   print('\t--watermark-width=<watermark-width> # set watermark width in percent relative to main video')
+   print('\t--black-top=<height> # add black rectangle from top of video of length N% (default N=0)')
+   print('\t--black-bottom=<height> # add black rectangle from bottom of video of length N% (default N=0)')
 
 def print_licence():
    print('''
@@ -81,18 +84,20 @@ def main(argv):
    codec = None
    fixedLength = None
    watermarkImage = None
+   watermarkWidth = 100
    blackTop = 0
    blackBottom = 0
+   cutUnitsPx = True
 
    print_short_licence()
 
    try:
       opts, args = getopt.getopt(
          argv,
-         "hf:v:i:t:s:e:o:c:l:w:",
+         "huf:v:i:t:s:e:o:c:l:w:",
          ["help", "folder=", "output=", "video=", "video-end=", "image=",
           "image-end=", "image-time=", "cut-start=", "cut-end=", "licence",
-          "watermark=", "black-top=", "black-bottom="]
+          "watermark=", "black-top=", "black-bottom=", "cut-percent", "watermark-width="]
       )
    except getopt.GetoptError:
       print_help()
@@ -134,6 +139,10 @@ def main(argv):
          blackTop = int(arg)
       elif opt in ("--black-bottom"):
          blackBottom = int(arg)
+      elif opt in ("-u", "--cut-percent"):
+         cutUnitsPx = False
+      elif opt in ("--watermark-width="):
+         watermarkWidth = max(0, int(arg))
 
    fileList = []
    ffvideoFile = None
@@ -190,30 +199,44 @@ def main(argv):
       try:
          if (os.path.isfile(os.path.join(inputFolder, filename))):
             video = VideoFileClip(os.path.join(inputFolder, filename))
-            video = video.subclip(cutFromBegining, -cutFromEnd if cutFromEnd > 0 else None)
+
+            beginingCut = cutFromBegining
+            endingCut = -cutFromEnd if cutFromEnd > 0 else None
+
+            if (not cutUnitsPx):
+               beginingCut = (cutFromBegining * video.duration) / 100
+               endingCut = -(cutFromEnd * video.duration) / 100 if cutFromEnd > 0 else None
+
+            video = video.subclip(beginingCut, endingCut)
             width, height = video.size
 
             if (fixedLength is not None):
                video = video.subclip(0, fixedLength)
 
             if (blackTop > 0):
+               blackHeight = (blackTop * height) / 100
+
                def top_filter(frame):
-                  frame[0: blackTop, 0: width] = 0
+                  frame[0: blackHeight, 0: width] = 0
                   return frame
 
                video = video.fl_image(top_filter)
 
             if (blackBottom > 0):
+               blackHeight = (blackBottom * height) / 100
+
                def bottom_filter(frame):
-                  frame[(height - blackBottom): height, 0: width] = 0
+                  frame[(height - blackHeight): height, 0: width] = 0
                   return frame
 
                video = video.fl_image(bottom_filter)
 
             if (ffwatermark is not None):
+               wWidth = (watermarkWidth * width) / 100
                logo = (ffwatermark
                         .set_duration(video.duration)
-                        .margin(right=8, top=8, opacity=0.6)
+                        .margin(right=0, top=0, opacity=0.6)
+                        .resize(width=wWidth)
                         .set_pos(("right", "top")))
                video = CompositeVideoClip([video, logo])
 
