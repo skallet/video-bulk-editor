@@ -30,6 +30,8 @@ def print_help():
    print('\t--cut-start=<cut-start> # cut N seconds from begining of all video files (default N=0)')
    print('\t--cut-end=<cut-end> # cut N seconds from end of all video files (default N=0)')
    print('\t--cut-percent # cut units are in percents instead of seconds')
+   print('\t--cut-percent-start # cut units from start are in percents instead of seconds')
+   print('\t--cut-percent-end # cut units from end are in percents instead of seconds')
    print('\t--watermark=<watermark-image> # add watermark image into main video')
    print('\t--watermark-width=<watermark-width> # set watermark width in percent relative to main video')
    print('\t--black-top=<height> # add black rectangle from top of video of length N% (default N=0)')
@@ -88,6 +90,8 @@ def main(argv):
    blackTop = 0
    blackBottom = 0
    cutUnitsPx = True
+   cutUnitsStartPx = True
+   cutUnitsEndPx = True
 
    print_short_licence()
 
@@ -97,7 +101,8 @@ def main(argv):
          "huf:v:i:t:s:e:o:c:l:w:",
          ["help", "folder=", "output=", "video=", "video-end=", "image=",
           "image-end=", "image-time=", "cut-start=", "cut-end=", "licence",
-          "watermark=", "black-top=", "black-bottom=", "cut-percent", "watermark-width="]
+          "watermark=", "black-top=", "black-bottom=", "cut-percent", "watermark-width=",
+          "cut-percent-start", "cut-percent-end"]
       )
    except getopt.GetoptError:
       print_help()
@@ -143,6 +148,10 @@ def main(argv):
          cutUnitsPx = False
       elif opt in ("--watermark-width="):
          watermarkWidth = max(0, int(arg))
+      elif opt in ("--cut-percent-start"):
+         cutUnitsStartPx = False
+      elif opt in ("--cut-percent-end"):
+         cutUnitsEndPx = False
 
    fileList = []
    ffvideoFile = None
@@ -203,8 +212,10 @@ def main(argv):
             beginingCut = cutFromBegining
             endingCut = -cutFromEnd if cutFromEnd > 0 else None
 
-            if (not cutUnitsPx):
+            if (not cutUnitsPx or not cutUnitsStartPx):
                beginingCut = (cutFromBegining * video.duration) / 100
+
+            if (not cutUnitsPx or not cutUnitsEndPx):
                endingCut = -(cutFromEnd * video.duration) / 100 if cutFromEnd > 0 else None
 
             video = video.subclip(beginingCut, endingCut)
