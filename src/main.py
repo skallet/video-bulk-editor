@@ -34,6 +34,9 @@ def print_help():
    print('\t--cut-percent-end # cut units from end are in percents instead of seconds')
    print('\t--watermark=<watermark-image> # add watermark image into main video')
    print('\t--watermark-width=<watermark-width> # set watermark width in percent relative to main video')
+   print('\t--watermark-to-left # set watermark anchor to left')
+   print('\t--watermark-to-bottom # set watermark anchor to bottom')
+   print('\t--watermark-width=<watermark-width> # set watermark width in percent relative to main video')
    print('\t--black-top=<height> # add black rectangle from top of video of length N% (default N=0)')
    print('\t--black-bottom=<height> # add black rectangle from bottom of video of length N% (default N=0)')
 
@@ -92,6 +95,8 @@ def main(argv):
    cutUnitsPx = True
    cutUnitsStartPx = True
    cutUnitsEndPx = True
+   watermarkX = "right"
+   watermarkY = "top"
 
    print_short_licence()
 
@@ -102,7 +107,7 @@ def main(argv):
          ["help", "folder=", "output=", "video=", "video-end=", "image=",
           "image-end=", "image-time=", "cut-start=", "cut-end=", "licence",
           "watermark=", "black-top=", "black-bottom=", "cut-percent", "watermark-width=",
-          "cut-percent-start", "cut-percent-end"]
+          "cut-percent-start", "cut-percent-end", "watermark-to-left", "watermark-to-bottom"]
       )
    except getopt.GetoptError:
       print_help()
@@ -140,6 +145,10 @@ def main(argv):
          fixedLength = int(arg)
       elif opt in ("-w", "--watermark"):
          watermarkImage = arg
+      elif opt in ("--watermark-to-left"):
+         watermarkX = "left"
+      elif opt in ("--watermark-to-bottom"):
+         watermarkY = "bottom"
       elif opt in ("--black-top"):
          blackTop = int(arg)
       elif opt in ("--black-bottom"):
@@ -246,9 +255,9 @@ def main(argv):
                wWidth = (watermarkWidth * width) / 100
                logo = (ffwatermark
                         .set_duration(video.duration)
-                        .margin(right=0, top=0, opacity=0.6)
+                        .margin(left=0, right=0, bottom=0, top=0, opacity=0.6)
                         .resize(width=wWidth)
-                        .set_pos(("right", "top")))
+                        .set_pos((watermarkX, watermarkY)))
                video = CompositeVideoClip([video, logo])
 
             videos = []
