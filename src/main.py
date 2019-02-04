@@ -36,7 +36,11 @@ def print_help():
    print('\t--watermark-width=<watermark-width> # set watermark width in percent relative to main video')
    print('\t--watermark-to-left # set watermark anchor to left')
    print('\t--watermark-to-bottom # set watermark anchor to bottom')
+   print('\t--watermark-to-center # set watermark anchor to center')
    print('\t--watermark-width=<watermark-width> # set watermark width in percent relative to main video')
+   print('\t--watermark-duration=<duration> # set watermark duration in seconds')
+   print('\t--watermark-show-at=<percent marks divided by ,> # set watermark start positions separated by comma')
+   print('\t--watermark-fade-duration=<duration> # set watermark fade in and out duration in seconds')
    print('\t--black-top=<height> # add black rectangle from top of video of length N% (default N=0)')
    print('\t--black-bottom=<height> # add black rectangle from bottom of video of length N% (default N=0)')
 
@@ -90,6 +94,8 @@ def main(argv):
    fixedLength = None
    watermarkImage = None
    watermarkWidth = 100
+   watermarkDuration = None
+   fadeDuration = 1
    blackTop = 0
    blackBottom = 0
    cutUnitsPx = True
@@ -97,6 +103,7 @@ def main(argv):
    cutUnitsEndPx = True
    watermarkX = "right"
    watermarkY = "top"
+   watermarkStarts = None
 
    print_short_licence()
 
@@ -107,7 +114,8 @@ def main(argv):
          ["help", "folder=", "output=", "video=", "video-end=", "image=",
           "image-end=", "image-time=", "cut-start=", "cut-end=", "licence",
           "watermark=", "black-top=", "black-bottom=", "cut-percent", "watermark-width=",
-          "cut-percent-start", "cut-percent-end", "watermark-to-left", "watermark-to-bottom"]
+          "cut-percent-start", "cut-percent-end", "watermark-to-left", "watermark-to-bottom",
+          "watermark-to-center", "watermark-duration=", "watermark-fade-duration=", "watermark-show-at="]
       )
    except getopt.GetoptError:
       print_help()
@@ -147,8 +155,17 @@ def main(argv):
          watermarkImage = arg
       elif opt in ("--watermark-to-left"):
          watermarkX = "left"
+      elif opt in ("--watermark-to-center"):
+         watermarkX = "center"
+         watermarkY = "center"
       elif opt in ("--watermark-to-bottom"):
          watermarkY = "bottom"
+      elif opt in ("--watermark-duration"):
+         watermarkDuration = int(arg)
+      elif opt in ("--watermark-fade-duration"):
+         fadeDuration = int(arg)
+      elif opt in ("--watermark-show-at"):
+         watermarkStarts = [int(a) for a in arg.split(',')]
       elif opt in ("--black-top"):
          blackTop = int(arg)
       elif opt in ("--black-bottom"):
@@ -253,12 +270,23 @@ def main(argv):
 
             if (ffwatermark is not None):
                wWidth = (watermarkWidth * width) / 100
+               duration = (watermarkDuration if watermarkDuration is not None else video.duration)
                logo = (ffwatermark
-                        .set_duration(video.duration)
+                        .set_duration(duration)
                         .margin(left=0, right=0, bottom=0, top=0, opacity=0.6)
                         .resize(width=wWidth)
-                        .set_pos((watermarkX, watermarkY)))
-               video = CompositeVideoClip([video, logo])
+                        .set_pos((watermarkX, watermarkY))
+                        .crossfadein(fadeDuration)
+                        .crossfadeout(fadeDuration))
+
+               if (watermarkStarts is None):
+                  video = CompositeVideoClip([video, logo])
+               else:
+                  logos = []
+                  for w in watermarkStarts:
+                     w_start = int(w * video.duration / 100)
+                     logos.append(logo.set_start(w_start))
+                  video = CompositeVideoClip([video] + logos)
 
             videos = []
             if (ffvideoFile):
