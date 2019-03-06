@@ -4,6 +4,18 @@ import getopt
 
 from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips, CompositeVideoClip
 
+codecs = {
+   'libx264': 'mp4',
+   'mpeg4': 'mp4',
+   'rawvideo': 'avi',
+   'msmpeg4v2': 'avi',
+   'wmv1': 'avi',
+   'png': 'avi',
+   'libvorbis': 'ogv',
+   'libvpx': 'webm',
+   'copy': 'avi',
+}
+
 def print_help():
    print('available arguments:')
    print('\t-h # show this help')
@@ -18,8 +30,10 @@ def print_help():
    print('\t-e <cut-end> # cut N seconds from end of all video files (default N=0)')
    print('\t-u # cut units are in percents instead of seconds')
    print('\t-w <watermark-image> # add watermark image into main video')
-   print('## word specified arguments:')
+   print('\n## word specified arguments:')
    print('\t--help # show this help')
+   print('\t--copy-codec <file_suffix> # copy codecs and save file in specified format (eq. avi)')
+   print('\t--suffix <file_suffix> # set file suffix to given value, can be used to override codec output (eq. avi)')
    print('\t--folder=<folder> # folder with video files to be edited')
    print('\t--output=<output-folder> # output folder to store results')
    print('\t--video=<video> # video to be added at the begining')
@@ -43,6 +57,10 @@ def print_help():
    print('\t--watermark-fade-duration=<duration> # set watermark fade in and out duration in seconds')
    print('\t--black-top=<height> # add black rectangle from top of video of length N% (default N=0)')
    print('\t--black-bottom=<height> # add black rectangle from bottom of video of length N% (default N=0)')
+   print('\t--ffmpeg=<params> # additional params passed to ffmpeg')
+   print('\n## available codecs:')
+   for c in codecs:
+      print('\t' + c + ' results in ' + codecs[c])
 
 def print_licence():
    print('''
@@ -72,15 +90,6 @@ def print_short_licence():
    ''')
 
 def main(argv):
-   codecs = {
-      'libx264': 'mp4',
-      'mpeg4': 'mp4',
-      'rawvideo': 'avi',
-      'png': 'avi',
-      'libvorbis': 'ogv',
-      'libvpx': 'webm',
-   }
-
    inputFolder = None
    outputFolder = None
    videoFile = None
@@ -104,6 +113,8 @@ def main(argv):
    watermarkX = "right"
    watermarkY = "top"
    watermarkStarts = None
+   codecSuffix = None
+   params = None
 
    print_short_licence()
 
@@ -115,7 +126,8 @@ def main(argv):
           "image-end=", "image-time=", "cut-start=", "cut-end=", "licence",
           "watermark=", "black-top=", "black-bottom=", "cut-percent", "watermark-width=",
           "cut-percent-start", "cut-percent-end", "watermark-to-left", "watermark-to-bottom",
-          "watermark-to-center", "watermark-duration=", "watermark-fade-duration=", "watermark-show-at="]
+          "watermark-to-center", "watermark-duration=", "watermark-fade-duration=", "watermark-show-at=",
+          "copy-codec=", "ffmpeg=", "suffix="]
       )
    except getopt.GetoptError:
       print_help()
@@ -172,12 +184,19 @@ def main(argv):
          blackBottom = int(arg)
       elif opt in ("-u", "--cut-percent"):
          cutUnitsPx = False
-      elif opt in ("--watermark-width="):
+      elif opt in ("--watermark-width"):
          watermarkWidth = max(0, int(arg))
       elif opt in ("--cut-percent-start"):
          cutUnitsStartPx = False
       elif opt in ("--cut-percent-end"):
          cutUnitsEndPx = False
+      elif opt in ("--copy-codec"):
+         codec = 'copy'
+         codecSuffix = arg
+      elif opt in ("--suffix"):
+         codecSuffix = arg
+      elif opt in ("--ffmpeg"):
+         params = arg.split(' ')
 
    fileList = []
    ffvideoFile = None
@@ -208,6 +227,8 @@ def main(argv):
    if codec is not None and not codecs.has_key(codec):
       print('Unknown codec, use -h or --help to show help message.')
       sys.exit(2)
+   elif codec is not None and codecSuffix is None:
+      codecSuffix = codecs[codec]
 
    if (videoFile):
       ffvideoFile = VideoFileClip(videoFile)
@@ -285,7 +306,11 @@ def main(argv):
                   logos = []
                   for w in watermarkStarts:
                      w_start = int(w * video.duration / 100)
-                     logos.append(logo.set_start(w_start))
+                     logos.append(
+                        logo
+                           .set_start(w_start)
+                           .set_duration(min(video.duration - w_start, duration)))
+
                   video = CompositeVideoClip([video] + logos)
 
             videos = []
@@ -305,8 +330,12 @@ def main(argv):
 
             result = concatenate_videoclips(videos)
 
-            translated_filename = filename if codec is None else os.path.splitext(filename)[0] + "." + codecs[codec]
-            result.write_videofile(os.path.join(outputFolder, translated_filename), codec=codec)
+            translated_filename = filename if codecSuffix is None else os.path.splitext(filename)[0] + "." + codecSuffix
+            result.write_videofile(
+               os.path.join(outputFolder, translated_filename),
+               codec=codec,
+               ffmpeg_params=params
+            )
       except:
          print('Error while transfering file: ', filename)
 
