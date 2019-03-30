@@ -58,6 +58,8 @@ def print_help():
    print('\t--black-top=<height> # add black rectangle from top of video of length N% (default N=0)')
    print('\t--black-bottom=<height> # add black rectangle from bottom of video of length N% (default N=0)')
    print('\t--ffmpeg=<params> # additional params passed to ffmpeg')
+   print('\t--resize-by-intro # resize main video by intro')
+   print('\t--resize-by-outro # resize main video by outro')
    print('\n## available codecs:')
    for c in codecs:
       print('\t' + c + ' results in ' + codecs[c])
@@ -115,6 +117,8 @@ def main(argv):
    watermarkStarts = None
    codecSuffix = None
    params = None
+   resizeWithIntro = False
+   resizeWithOutro = False
 
    print_short_licence()
 
@@ -127,7 +131,7 @@ def main(argv):
           "watermark=", "black-top=", "black-bottom=", "cut-percent", "watermark-width=",
           "cut-percent-start", "cut-percent-end", "watermark-to-left", "watermark-to-bottom",
           "watermark-to-center", "watermark-duration=", "watermark-fade-duration=", "watermark-show-at=",
-          "copy-codec=", "ffmpeg=", "suffix="]
+          "copy-codec=", "ffmpeg=", "suffix=", "resize-by-intro", "resize-by-outro"]
       )
    except getopt.GetoptError:
       print_help()
@@ -197,6 +201,10 @@ def main(argv):
          codecSuffix = arg
       elif opt in ("--ffmpeg"):
          params = arg.split(' ')
+      elif opt in ("--resize-by-intro"):
+         resizeWithIntro = True
+      elif opt in ("--resize-by-outro"):
+         resizeWithOutro = True
 
    fileList = []
    ffvideoFile = None
@@ -230,6 +238,14 @@ def main(argv):
    elif codec is not None and codecSuffix is None:
       codecSuffix = codecs[codec]
 
+   if resizeWithIntro and not videoFile:
+      print('No intro for resize found, use -h or --help to show help message.')
+      sys.exit(2)
+
+   if resizeWithIntro and not videoEndFile:
+      print('No outro for resize found, use -h or --help to show help message.')
+      sys.exit(2)
+
    if (videoFile):
       ffvideoFile = VideoFileClip(videoFile)
 
@@ -255,6 +271,12 @@ def main(argv):
       try:
          if (os.path.isfile(os.path.join(inputFolder, filename))):
             video = VideoFileClip(os.path.join(inputFolder, filename))
+
+            if (resizeWithIntro and ffvideoFile):
+               video = video.resize(ffvideoFile.size)
+
+            if (resizeWithOutro and ffvideoEndFile):
+               video = video.resize(ffvideoEndFile.size)
 
             beginingCut = cutFromBegining
             endingCut = -cutFromEnd if cutFromEnd > 0 else None
