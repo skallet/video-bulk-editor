@@ -1,5 +1,7 @@
 test-video
 test-output
+test-data
 test-image.jpg
 test-video.mp4
 test-watermark.png
+dist
