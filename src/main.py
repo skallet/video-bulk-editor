@@ -2,7 +2,7 @@ import os
 import sys
 import getopt
 
-from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips, CompositeVideoClip
+from moviepy.editor import VideoFileClip, ImageClip, concatenate_videoclips, CompositeVideoClip, vfx
 
 codecs = {
    'libx264': 'mp4',
@@ -30,6 +30,8 @@ def print_help():
    print('\t-e <cut-end> # cut N seconds from end of all video files (default N=0)')
    print('\t-u # cut units are in percents instead of seconds')
    print('\t-w <watermark-image> # add watermark image into main video')
+   print('\t-r <angle> # rotate main video by given angle')
+   print('\t-m # mirror main video')
    print('\n## word specified arguments:')
    print('\t--help # show this help')
    print('\t--copy-codec <file_suffix> # copy codecs and save file in specified format (eq. avi)')
@@ -60,6 +62,8 @@ def print_help():
    print('\t--ffmpeg=<params> # additional params passed to ffmpeg')
    print('\t--resize-by-intro # resize main video by intro')
    print('\t--resize-by-outro # resize main video by outro')
+   print('\t--rotate=<angle> # rotate main video by given angle')
+   print('\t--mirror # mirror main video')
    print('\n## available codecs:')
    for c in codecs:
       print('\t' + c + ' results in ' + codecs[c])
@@ -119,19 +123,21 @@ def main(argv):
    params = None
    resizeWithIntro = False
    resizeWithOutro = False
+   mirrorVideo = False
+   rotateVideo = None
 
    print_short_licence()
 
    try:
       opts, args = getopt.getopt(
          argv,
-         "huf:v:i:t:s:e:o:c:l:w:",
+         "humf:v:i:t:s:e:o:c:l:w:r:",
          ["help", "folder=", "output=", "video=", "video-end=", "image=",
           "image-end=", "image-time=", "cut-start=", "cut-end=", "licence",
           "watermark=", "black-top=", "black-bottom=", "cut-percent", "watermark-width=",
           "cut-percent-start", "cut-percent-end", "watermark-to-left", "watermark-to-bottom",
           "watermark-to-center", "watermark-duration=", "watermark-fade-duration=", "watermark-show-at=",
-          "copy-codec=", "ffmpeg=", "suffix=", "resize-by-intro", "resize-by-outro"]
+          "copy-codec=", "ffmpeg=", "suffix=", "resize-by-intro", "resize-by-outro", "mirror", "rotate="]
       )
    except getopt.GetoptError:
       print_help()
@@ -205,6 +211,10 @@ def main(argv):
          resizeWithIntro = True
       elif opt in ("--resize-by-outro"):
          resizeWithOutro = True
+      elif opt in ("-m", "--mirror"):
+         mirrorVideo = True
+      elif opt in ("-r", "--rotate"):
+         rotateVideo = int(arg)
 
    fileList = []
    ffvideoFile = None
@@ -290,6 +300,19 @@ def main(argv):
             video = video.subclip(beginingCut, endingCut)
             width, height = video.size
 
+            if (mirrorVideo):
+               video = video.fx(vfx.mirror_x)
+
+            if (rotateVideo is not None):
+               video = video.rotate(rotateVideo)
+
+            # video = (video
+            #    # .fx(vfx.mirror_x)
+            #    # .rotate(1)
+            #    # .fx(vfx.colorx, factor=1.4)
+            #    # .fx(vfx.painting, saturation=1.6, black=0.01)
+            # )
+
             if (fixedLength is not None):
                video = video.subclip(0, fixedLength)
 
@@ -358,8 +381,9 @@ def main(argv):
                codec=codec,
                ffmpeg_params=params
             )
-      except:
+      except Exception as e:
          print('Error while transfering file: ', filename)
+         print('Original Error: ', str(e))
 
 if __name__ == "__main__":
    main(sys.argv[1:])
